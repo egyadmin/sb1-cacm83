@@ -1,0 +1,164 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Users and Authentication
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  employeeId    String    @unique
+  iqamaNumber   String    @unique
+  jobTitle      String
+  role          String    @default("user") // admin, manager, user
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  branches      Branch[]  @relation("BranchManagers")
+  complexes     Complex[] @relation("ComplexManagers")
+}
+
+// Branches and Complexes
+model Branch {
+  id          String    @id @default(uuid())
+  name        String
+  nameEn      String
+  managers    User[]    @relation("BranchManagers")
+  complexes   Complex[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Complex {
+  id               String    @id @default(uuid())
+  name             String
+  nameEn           String
+  branchId         String
+  branch           Branch    @relation(fields: [branchId], references: [id])
+  managers         User[]    @relation("ComplexManagers")
+  buildings        Building[]
+  totalCapacity    Int
+  currentOccupancy Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Building {
+  id          String   @id @default(uuid())
+  number      String
+  complexId   String
+  complex     Complex  @relation(fields: [complexId], references: [id])
+  rooms       Int
+  bathrooms   Int
+  kitchens    Int
+  location    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  residents   Resident[]
+}
+
+// Residents
+model Resident {
+  id          String   @id @default(uuid())
+  name        String
+  employeeId  String   @unique
+  iqamaNumber String   @unique
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id])
+  status      String   // active, inactive, pending
+  checkIn     DateTime
+  checkOut    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Projects and Subcontractors
+model Project {
+  id            String    @id @default(uuid())
+  name          String
+  managerId     String
+  status        String    // active, completed, delayed, pending
+  startDate     DateTime
+  endDate       DateTime
+  progress      Float     @default(0)
+  contracts     Contract[]
+  tasks         Task[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Contract {
+  id            String    @id @default(uuid())
+  number        String    @unique
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+  contractorId  String
+  contractor    Contractor @relation(fields: [contractorId], references: [id])
+  value         Float
+  startDate     DateTime
+  endDate       DateTime
+  status        String    // active, completed, terminated
+  tasks         ContractTask[]
+  invoices      Invoice[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Contractor {
+  id            String    @id @default(uuid())
+  name          String
+  nameEn        String
+  contracts     Contract[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Task {
+  id            String    @id @default(uuid())
+  name          String
+  description   String
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+  assignedTo    String?
+  status        String    // pending, in-progress, completed, delayed
+  startDate     DateTime
+  endDate       DateTime
+  progress      Float     @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ContractTask {
+  id            String    @id @default(uuid())
+  name          String
+  description   String
+  contractId    String
+  contract      Contract  @relation(fields: [contractId], references: [id])
+  value         Float
+  startDate     DateTime
+  endDate       DateTime
+  progress      Float     @default(0)
+  status        String    // pending, in-progress, completed, delayed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Invoice {
+  id            String    @id @default(uuid())
+  number        String    @unique
+  contractId    String
+  contract      Contract  @relation(fields: [contractId], references: [id])
+  amount        Float
+  status        String    // pending, paid, cancelled
+  issueDate     DateTime
+  dueDate       DateTime
+  paidDate      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
